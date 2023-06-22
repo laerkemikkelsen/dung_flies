@@ -4,7 +4,7 @@ display.brewer.all()
 dungcol <- colorRampPalette(brewer.pal(8, name = "Set2"))(10)
 dungcol2 <- colorRampPalette(brewer.pal(8, name = "Set1"))(10)
 
-# Import the data into R # 
+# Import the data into R
 library(readr)
 dungfly <- read.csv2("Data_final.csv")
 dungfly <- dungfly[!is.na(dungfly$tibia_lenght),] #remove row that does not have 
@@ -15,7 +15,6 @@ dungfly <- dungfly[, !names(dungfly) %in% "male_number"] # remove the column
 # Check the classes
 library(tibble)
 as_tibble(dungfly)
-summarise(dungfly)
 
 # change the name of the time groups 
 dungfly$time_group[dungfly$time_group =="A"] <- "5 min" 
@@ -42,7 +41,7 @@ dungfly$dung_number <- as.factor(dungfly$dung_number)
 
 
 # Create a dataset that only contains the counts 
-# library(tidyverse)
+library(tidyverse)
 # library(dplyr)
 dungfly_counts <- dungfly %>%
   group_by(time_group) %>%
@@ -65,9 +64,9 @@ library(ggplot2)
 #         axis.text.y = element_text(size = 12)) +
 #   theme_minimal()
 
-dungfly_counts_tot <- dungfly %>%
-  group_by(time_group, dung_number) %>%
-  summarise(fly_count = n())
+# dungfly_counts_tot <- dungfly %>%
+#   group_by(time_group, dung_number) %>%
+#   summarise(fly_count = n())
 
 dungfly_counts_tot <- dungfly %>%
   group_by(time_group, dung_number,single_paired) %>%
@@ -180,7 +179,7 @@ ggsave("barplot_tibialengthperdung.jpeg", width = 10, height = 5)
 
 library(patchwork)
 combined_plot1 <- T_tibia_plot + bar_tibia_tot + plot_annotation(tag_levels = 'A')
-
+combined_plot1
 ggsave("combinedplot_tibia.jpeg", plot = combined_plot1, width = 14, height = 7)
 
 # ggplot tibia lenght single males 
@@ -192,6 +191,7 @@ S_tibia_plot <- ggplot(single_males,
   labs(x = "Time after diposition", y = "Tibia lenght for single males (mm)") +
   scale_fill_manual(values = dungcol) + 
   guides(fill = F)
+S_tibia_plot
 
 # ggplot tibia lenght paired males 
 paired_males <- dungfly[dungfly$single_paired == "Paired", ]
@@ -201,15 +201,20 @@ P_tibia_plot <- ggplot(paired_males,
   labs(x = "Time after diposition", y = "Tibia lenght for paired males (mm)") +
   scale_fill_manual(values = dungcol) + 
   guides(fill = F)
+P_tibia_plot
 
 # It all in one plot 
 combined_plot2 <- P_tibia_plot + S_tibia_plot + plot_annotation(tag_levels = 'A')
+combined_plot2
 ggsave("combinedplot_single_paired.jpeg", plot = combined_plot2, width = 14, height = 7)
-# check if data is normal distributed
-hist(log(dungfly$tibia_lenght), breaks = 8)
+
+
+# Analysis 
+
+# check if data is normal distributed - tibia lenght
+hist(dungfly$tibia_lenght, 8)
+hist(log(dungfly$tibia_lenght), 8)
 qqnorm(log(dungfly$tibia_lenght))
-# it is not normal distributed
-# so we log transform it in the models 
 
 # linear mixed effect model (LMM) 
 library(lme4)
@@ -217,17 +222,52 @@ library(lme4)
 model1 <- lmer(log(tibia_lenght) ~ time_group * single_paired + (1|dung_number), 
                data = dungfly)
 summary(model1)
+# Visulization of LMM model
+model1 %>% 
+  summary %>% 
+  coefficients() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("term") %>% 
+  as_tibble %>% 
+  janitor::clean_names() %>% 
+  mutate(lower = estimate - std_error * 1.94,
+         upper = estimate + std_error * 1.94) %>% 
+         # across(c(estimate, lower,upper), ~model1@resp$family$linkinv(.x))) %>% 
+  ggplot(aes(y=term,x=estimate,xmin=lower,xmax=upper)) +
+  geom_col() +
+  geom_pointrange() + 
+  theme(text = element_text(size = 14))
 
 library(emmeans)
 library(pbkrtest)
 emm <- emmeans(model1, list(pairwise ~ time_group : single_paired), adjust = "tukey")
 summary(emm)
 
+# Check for poisson distribution - number of flies
+hist(dungfly_counts_tot$fly_count, 100)
+
 # number of flies 
 model5 <- glmer(fly_count ~ time_group * single_paired + (1|dung_number), 
                 data = dungfly_counts_tot, family = poisson)
 summary(model5)
+# Visulization of GLMM model
+model5 %>% 
+  summary %>% 
+  coefficients() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("term") %>% 
+  as_tibble %>% 
+  janitor::clean_names() %>% 
+  mutate(lower = estimate - std_error * 1.94,
+             upper = estimate + std_error * 1.94,
+             across(c(estimate, lower,upper), ~model5@resp$family$linkinv(.x))) %>% 
+  ggplot(aes(y=term,x=estimate,xmin=lower,xmax=upper)) +
+    geom_col() +
+    geom_pointrange() + 
+    theme(text = element_text(size = 14))
+ggsave("model5.jpeg",width = 14, height = 7)
 
+library(emmeans)
 emm2 <- emmeans(model5, list(pairwise ~ time_group : single_paired), adjust = "tukey")
 summary(emm2)
 
