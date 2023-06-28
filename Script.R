@@ -53,20 +53,6 @@ dungfly_counts <- dungfly %>%
 
 # ggplot number of males per dung per time
 library(ggplot2)
-# tot_males <- ggplot(dungfly_counts,
-#        aes(x = time_group, y = total_males, fill = time_group)) + 
-#   geom_col(width = 0.8) + 
-#   labs(x = "Time after diposition", y = "Total number of male flies") + 
-#   guides(fill = F) +
-#   scale_fill_manual(values = dungcol) + 
-#   scale_y_continuous(expand = expansion(0, c(0,1))) + 
-#   theme(axis.text.x = element_text(angle = 90, size = 12), 
-#         axis.text.y = element_text(size = 12)) +
-#   theme_minimal()
-
-# dungfly_counts_tot <- dungfly %>%
-#   group_by(time_group, dung_number) %>%
-#   summarise(fly_count = n())
 
 dungfly_counts_tot <- dungfly %>%
   group_by(time_group, dung_number,single_paired) %>%
@@ -91,68 +77,6 @@ barplot2 <- ggplot(dungfly_counts_tot,
   scale_fill_manual(values = dungcol)
 barplot2
 ggsave("BarplotTotalDensity.jpeg", width = 10, height = 7)
-
-# ggplot number of single males per dung per time 
-# tot_singles <- ggplot(dungfly_counts,
-#        aes(x = time_group, y = total_single_males, fill = time_group)) + 
-#   geom_col() + 
-#   labs(x = "Time after diposition", y = "Total number of single male flies") + 
-#   guides(fill = F) +
-#   scale_fill_manual(values = dungcol)
-# tot_singles
-
-# dungfly_counts_single <- dungfly %>% 
-#   group_by(time_group, dung_number, single_paired) %>% 
-#   summarise(.groups = single_paired,
-#             singles = )
-# 
-# bar_sgl <- ggplot(dungfly_counts_single,
-#        aes(x = time_group, y = fly_count, fill = time_group)) + 
-#   geom_boxplot() + 
-#   labs(x = "Time after dung dipostion", y = "Single male flies pr. dung") +
-#   guides(fill = F) +
-#   scale_fill_manual(values = dungcol) + 
-#   theme_minimal()
-# bar_sgl
-# ggsave("BarplotSingles.jpeg", width = 15, height = 10)
-
-#ggplot total number of paired males per time 
-# tot_paired <- ggplot(dungfly_counts,
-#        aes(x = time_group, y = total_paired_males, fill = time_group)) + 
-#   geom_col() + 
-#   labs(x = "Time after diposition", y = "Total number of paired male flies") + 
-#   guides(fill = F) +
-#   scale_fill_manual(values = dungcol)
-# tot_paired
-
-# dungfly_counts_paired <- dungfly %>% 
-#   group_by(time_group, dung_number, single_paired) %>% 
-#   summarise(fly_count = n())
-# 
-# bar_sgl <- ggplot(dungfly_counts_single,
-#                   aes(x = time_group, y = fly_count, fill = time_group)) + 
-#   geom_boxplot() + 
-#   labs(x = "Time after dung dipostion", y = "Single male flies pr. dung") +
-#   guides(fill = F) +
-#   scale_fill_manual(values = dungcol) + 
-#   theme_minimal()
-# bar_sgl
-# ggsave("BarplotSingles.jpeg", width = 15, height = 10)
-
-# It all in one plot 
-# combined_count <- dungfly %>%
-#   group_by(time_group, single_paired) %>%
-#   tally()
-
-# ggplot(combined_count,
-#        aes(x = time_group, y = n, fill = single_paired)) +
-#   geom_col(width = 0.8) + 
-#   labs(x ="Time after dung diposition", y = "Count of male flies", fill = c("Paired", "Single")) +
-#   scale_fill_manual(values = c("coral", "cyan3")) +
-#   scale_y_continuous(expand = expansion(0, c(0,1))) + 
-#   theme_light() + 
-#   theme(axis.title = element_text(size = 12))
-#  ggsave("barplot_totalcountofmales.jpeg", width = 10, height = 5)
 
  # ggplot tibia lenght all males 
  T_tibia_plot <- ggplot(dungfly,
@@ -225,22 +149,8 @@ model1 <- lmer(log(tibia_lenght) ~ time_group * single_paired + (1|dung_number),
                data = dungfly)
 summary(model1)
 
-# Visulization of LMM model
+# Visulization of LMM 
 
-# model1 %>% 
-#   summary %>% 
-#   coefficients() %>% 
-#   as.data.frame() %>% 
-#   rownames_to_column("term") %>% 
-#   as_tibble %>% 
-#   janitor::clean_names() %>% 
-#   mutate(lower = estimate - std_error * 1.94,
-#          upper = estimate + std_error * 1.94) %>% 
-#          # across(c(estimate, lower,upper), ~model1@resp$family$linkinv(.x))) %>% 
-#   ggplot(aes(y = term,x = estimate,xmin = lower,xmax = upper)) +
-#   geom_col() +
-#   geom_pointrange() + 
-#   theme(text = element_text(size = 14)) 
 model1 %>%
   summary %>%
   coefficients() %>%
@@ -277,24 +187,7 @@ model5 <- glmer(fly_count ~ time_group * single_paired + (1|dung_number),
                 data = dungfly_counts_tot, family = poisson)
 summary(model5)
 
-# Visulization of GLMM model
-# model5 %>% 
-#   summary %>% 
-#   coefficients() %>% 
-#   as.data.frame() %>% 
-#   rownames_to_column("term") %>% 
-#   as_tibble %>% 
-#   janitor::clean_names() %>% 
-#   mutate(lower = estimate - std_error * 1.94,
-#              upper = estimate + std_error * 1.94,
-#              across(c(estimate, lower,upper), ~model5@resp$family$linkinv(.x))) %>% 
-#   ggplot(aes(y=term,x=estimate,xmin=lower,xmax=upper)) +
-#     geom_col() +
-#     geom_pointrange() + 
-#     theme(text = element_text(size = 14)) + 
-#   scale_x_log10() + 
-#   labs(x = "log(estimate)", y = "Term")
-
+# visualization of GLMM 
 model5 %>%
   summary %>%
   coefficients() %>%
@@ -334,40 +227,5 @@ overdisp_fun <- function(model) {
 }
 overdisp_fun(model5) # no overdispersion 
 
-
-
-# library(multcomp)
-# em2 <- glht(model1, linfct = mcp(time_group *  single_paired = "Tukey"), 
-#             alternative = "greater")
-
-#LMM model without interaction 
-#model2 <- lmer(log(tibia_lenght) ~ time_group + single_paired + (1|dung_number), 
-              # data = dungfly)
-#summary(model2)
-# likelyhood ratio test of nested models, to compare the two models above (model1
-# and model2)
-# library(lmtest)
-# anova(model2, model1) 
-
-# the result is non significant, which tells us we can remove the interaction 
-# between paired/single and time. Hence we cannot use model1
-
-# In model2 we had both single/paired and time. Now we do it in two different 
-# models, to see whether they both influence the tibia length or not 
-# model3 <- lmer(log(tibia_lenght) ~ time_group + (1|dung_number), 
-#                data = dungfly)
-# summary(model3)
-# model4 <- lmer(log(tibia_lenght) ~ single_paired + (1|dung_number), 
-#                data = dungfly)
-# summary(model4)
-# # comparison of model2 and 3 
-# lrtest(model2, model3)
-# # it is significant - time does have an affect on tibia length
-# lrtest(model2, model4)
-# # it is significant - paired/single has an affect on tibia length
-
-# Nathans wording: we found a significant effect of pairing status on male tibia
-# length (LMM: beta = -0,143, LRT: chi2 = 52,322, p < 0,001), with paired males
-# showing larger tibia lengths than single males (the mean of single and paired)
 
 
