@@ -82,6 +82,7 @@ theme(text = element_text(size = 14))
 barplot1
 ggsave("BarplotSingleMaleDensity.jpeg", width = 10, height = 7)
 
+
 barplot2 <- ggplot(dungfly_counts_tot,
                    aes(x = time_group, y = fly_count, fill = time_group)) +
   geom_boxplot() + 
@@ -218,25 +219,50 @@ qqnorm(log(dungfly$tibia_lenght))
 
 # linear mixed effect model (LMM) 
 library(lme4)
+library(lmerTest)
 # LMM model with interaction 
 model1 <- lmer(log(tibia_lenght) ~ time_group * single_paired + (1|dung_number), 
                data = dungfly)
 summary(model1)
+
 # Visulization of LMM model
-model1 %>% 
-  summary %>% 
-  coefficients() %>% 
-  as.data.frame() %>% 
-  rownames_to_column("term") %>% 
-  as_tibble %>% 
-  janitor::clean_names() %>% 
-  mutate(lower = estimate - std_error * 1.94,
-         upper = estimate + std_error * 1.94) %>% 
-         # across(c(estimate, lower,upper), ~model1@resp$family$linkinv(.x))) %>% 
-  ggplot(aes(y=term,x=estimate,xmin=lower,xmax=upper)) +
+
+# model1 %>% 
+#   summary %>% 
+#   coefficients() %>% 
+#   as.data.frame() %>% 
+#   rownames_to_column("term") %>% 
+#   as_tibble %>% 
+#   janitor::clean_names() %>% 
+#   mutate(lower = estimate - std_error * 1.94,
+#          upper = estimate + std_error * 1.94) %>% 
+#          # across(c(estimate, lower,upper), ~model1@resp$family$linkinv(.x))) %>% 
+#   ggplot(aes(y = term,x = estimate,xmin = lower,xmax = upper)) +
+#   geom_col() +
+#   geom_pointrange() + 
+#   theme(text = element_text(size = 14)) 
+model1 %>%
+  summary %>%
+  coefficients() %>%
+  as.data.frame() %>%
+  rownames_to_column("term") %>%
+  as_tibble() %>%
+  janitor::clean_names() %>%
+  mutate(
+    lower = estimate - std_error * 1.94,
+    upper = estimate + std_error * 1.94,
+    #across(c(estimate, lower, upper), ~ model5@resp$family$linkinv(.x)), 
+    p_value = format(summary(model1)$coefficients[, "Pr(>|t|)"], digits = 3),
+    significant = ifelse(as.numeric(p_value) < 0.05, "*", "")
+  ) %>%
+  ggplot(aes(y = term, x = estimate, xmin = lower, xmax = upper)) +
   geom_col() +
-  geom_pointrange() + 
-  theme(text = element_text(size = 14))
+  geom_pointrange() +
+  geom_text(aes(label = paste0(p_value, significant)), hjust = c(-0.2, 1.2, 1.2, 1.2, -0.2, -0.2), vjust = 1.5) +
+  theme(text = element_text(size = 14)) +
+  labs(x = "Estimate", y = "Term") 
+ggsave("model1.jpeg",width = 14, height = 7)
+
 
 library(emmeans)
 library(pbkrtest)
@@ -250,26 +276,53 @@ hist(dungfly_counts_tot$fly_count, 100)
 model5 <- glmer(fly_count ~ time_group * single_paired + (1|dung_number), 
                 data = dungfly_counts_tot, family = poisson)
 summary(model5)
+
 # Visulization of GLMM model
-model5 %>% 
-  summary %>% 
-  coefficients() %>% 
-  as.data.frame() %>% 
-  rownames_to_column("term") %>% 
-  as_tibble %>% 
-  janitor::clean_names() %>% 
-  mutate(lower = estimate - std_error * 1.94,
-             upper = estimate + std_error * 1.94,
-             across(c(estimate, lower,upper), ~model5@resp$family$linkinv(.x))) %>% 
-  ggplot(aes(y=term,x=estimate,xmin=lower,xmax=upper)) +
-    geom_col() +
-    geom_pointrange() + 
-    theme(text = element_text(size = 14))
+# model5 %>% 
+#   summary %>% 
+#   coefficients() %>% 
+#   as.data.frame() %>% 
+#   rownames_to_column("term") %>% 
+#   as_tibble %>% 
+#   janitor::clean_names() %>% 
+#   mutate(lower = estimate - std_error * 1.94,
+#              upper = estimate + std_error * 1.94,
+#              across(c(estimate, lower,upper), ~model5@resp$family$linkinv(.x))) %>% 
+#   ggplot(aes(y=term,x=estimate,xmin=lower,xmax=upper)) +
+#     geom_col() +
+#     geom_pointrange() + 
+#     theme(text = element_text(size = 14)) + 
+#   scale_x_log10() + 
+#   labs(x = "log(estimate)", y = "Term")
+
+model5 %>%
+  summary %>%
+  coefficients() %>%
+  as.data.frame() %>%
+  rownames_to_column("term") %>%
+  as_tibble() %>%
+  janitor::clean_names() %>%
+  mutate(
+    lower = estimate - std_error * 1.94,
+    upper = estimate + std_error * 1.94,
+    across(c(estimate, lower, upper), ~ model5@resp$family$linkinv(.x)),
+    p_value = format(summary(model5)$coefficients[, "Pr(>|z|)"], digits = 3),
+    significant = ifelse(as.numeric(p_value) < 0.05, "*", "")
+  ) %>%
+  ggplot(aes(y = term, x = estimate, xmin = lower, xmax = upper)) +
+  geom_col() +
+  geom_pointrange() +
+  geom_text(aes(label = paste0(p_value, significant)), hjust = c(-0.2, 1.2, 1.2, 1.2, -0.2, -0.2), vjust = 1.5) +
+  theme(text = element_text(size = 14)) +
+  scale_x_log10() +
+  labs(x = "log(estimate)", y = "Term")
 ggsave("model5.jpeg",width = 14, height = 7)
 
 library(emmeans)
 emm2 <- emmeans(model5, list(pairwise ~ time_group : single_paired), adjust = "tukey")
 summary(emm2)
+plot(emm2)
+
 
 overdisp_fun <- function(model) {
   rdf <- df.residual(model)
