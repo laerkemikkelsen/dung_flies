@@ -1,6 +1,6 @@
 # Create colorpalette
 library(RColorBrewer)
-display.brewer.all()
+display.brewer.all() 
 dungcol <- colorRampPalette(brewer.pal(8, name = "Set2"))(10)
 dungcol2 <- colorRampPalette(brewer.pal(8, name = "Set1"))(10)
 
